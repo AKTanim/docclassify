@@ -38,3 +38,12 @@ class UnsupportedDocument(AppError):
     # Raised by the text extractor. The service catches it and falls back
     # to the file name, so callers never receive this code.
     code = "UNSUPPORTED_DOCUMENT"
+
+
+class UrlNotAllowed(AppError):
+    code = "URL_NOT_ALLOWED"
+
+
+class UrlExpired(AppError):
+    # The caller must ask for a new URL. Sending the same one again cannot work.
+    code = "URL_EXPIRED"

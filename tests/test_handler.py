@@ -1,8 +1,16 @@
+from dataclasses import replace
+
 from docclassify.classifier import KeywordClassifier
 from docclassify.handler import Deps, handle
 from tests.helpers import FakeStore, make_pdf
 
 URL = "https://docstore.example.com/f/9f1c2e7a.pdf?exp=1761663129&sig=7d1e9c42"
+HOSTS = frozenset({"docstore.example.com"})
+
+
+def fixed_clock() -> float:
+    # One second before the URL above expires.
+    return 1761663128
 
 
 def event(**changes) -> dict:
@@ -21,7 +29,12 @@ def event(**changes) -> dict:
 
 
 def deps_with(documents: dict[str, bytes]) -> Deps:
-    return Deps(store=FakeStore(documents), classifier=KeywordClassifier())
+    return Deps(
+        store=FakeStore(documents),
+        classifier=KeywordClassifier(),
+        allowed_hosts=HOSTS,
+        clock=fixed_clock,
+    )
 
 
 def test_quote_is_classified():
@@ -86,10 +99,22 @@ class BrokenClassifier:
 def test_unexpected_error_returns_internal_error():
     request = event()
     request["metadata"]["mime_type"] = "text/plain"
-    deps = Deps(store=FakeStore({URL: b"hello"}), classifier=BrokenClassifier())
+    deps = Deps(
+        store=FakeStore({URL: b"hello"}),
+        classifier=BrokenClassifier(),
+        allowed_hosts=HOSTS,
+        clock=fixed_clock,
+    )
     response = handle(request, deps)
     assert response["error"] == {
         "code": "INTERNAL_ERROR",
         "message": "Something went wrong on our side.",
         "retryable": False,
     }
+
+
+def test_expired_url_is_refused_before_fetching():
+    deps = deps_with({URL: make_pdf("Offerte")})
+    late = replace(deps, clock=lambda: 1761663130)
+    response = handle(event(), late)
+    assert response["error"]["code"] == "URL_EXPIRED"
