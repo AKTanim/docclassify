@@ -1,0 +1,10 @@
+{
+  "request_id": "c1d2e3f4-0000-4000-8000-000000000003",
+  "document_url": "https://docstore.example.com/f/5c2e9f41.txt?exp=4102444800&sig=5e6f7a8b",
+  "metadata": {
+    "document_id": "5c2e9f41",
+    "tenant_id": "contractor-1042",
+    "file_name": "hoeveelheden.txt",
+    "mime_type": "text/plain"
+  }
+}
