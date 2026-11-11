@@ -2,7 +2,9 @@
 
 import logging
 import os
-from dataclasses import dataclass
+import time
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +15,7 @@ from docclassify.errors import AppError, InvalidRequest, UnsupportedDocument
 from docclassify.extract import extract_text
 from docclassify.models import ClassifyRequest
 from docclassify.store import DocumentStore, LocalDocumentStore
+from docclassify.urls import check_url
 
 logger = logging.getLogger("docclassify")
 
@@ -23,13 +26,20 @@ class Deps:
 
     store: DocumentStore
     classifier: Classifier
+    allowed_hosts: frozenset[str]
+    clock: Callable[[], float] = field(default=time.time)
 
 
 def build_deps() -> Deps:
     """Create the real parts once, from environment variables."""
     folder = Path(os.environ.get("DOCUMENT_STORE_DIR", "sample_docs"))
     max_bytes = int(os.environ.get("MAX_DOCUMENT_BYTES", "10000000"))
-    return Deps(store=LocalDocumentStore(folder, max_bytes), classifier=KeywordClassifier())
+    hosts = os.environ.get("ALLOWED_HOSTS", "docstore.example.com")
+    return Deps(
+        store=LocalDocumentStore(folder, max_bytes),
+        classifier=KeywordClassifier(),
+        allowed_hosts=frozenset(host.strip().lower() for host in hosts.split(",") if host.strip()),
+    )
 
 
 def describe(exc: ValidationError) -> str:
@@ -58,6 +68,7 @@ def handle(event: Any, deps: Deps) -> dict:
         except ValidationError as exc:
             raise InvalidRequest(describe(exc)) from exc
 
+        check_url(request.document_url, deps.allowed_hosts, deps.clock())
         content = deps.store.fetch(request.document_url)
 
         warnings: list[str] = []
