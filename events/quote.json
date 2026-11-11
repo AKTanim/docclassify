@@ -1,0 +1,10 @@
+{
+  "request_id": "b7e4d2a0-1c3f-4e9b-8f62-5a0d9c7e1b34",
+  "document_url": "https://docstore.example.com/f/9f1c2e7a.pdf?exp=4102444800&sig=7d1e9c42",
+  "metadata": {
+    "document_id": "9f1c2e7a",
+    "tenant_id": "contractor-1042",
+    "file_name": "Offerte_kozijnen_fase2.pdf",
+    "mime_type": "application/pdf"
+  }
+}

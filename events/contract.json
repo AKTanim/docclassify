@@ -1,0 +1,10 @@
+{
+  "request_id": "c1d2e3f4-0000-4000-8000-000000000002",
+  "document_url": "https://docstore.example.com/f/3b7d1a20.pdf?exp=4102444800&sig=1a2b3c4d",
+  "metadata": {
+    "document_id": "3b7d1a20",
+    "tenant_id": "contractor-1042",
+    "file_name": "overeenkomst_project_west.pdf",
+    "mime_type": "application/pdf"
+  }
+}
