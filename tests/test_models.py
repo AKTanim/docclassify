@@ -55,3 +55,4 @@ def test_missing_url_is_rejected():
     data = {key: value for key, value in event.items() if key != "document_url"}
     with pytest.raises(ValidationError):
         ClassifyRequest.model_validate(data)
+        # data is not a valid event, missing url field

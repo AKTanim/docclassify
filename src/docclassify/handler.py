@@ -46,6 +46,7 @@ def describe(exc: ValidationError) -> str:
     """Turn pydantic's error list into one short sentence for the caller."""
     problems = []
     for error in exc.errors():
+        # exc.errors() is a list with one dictionary per problem.
         location = ".".join(str(part) for part in error["loc"]) or "request"
         problems.append(f"{location}: {error['msg']}")
     return "Invalid request. " + "; ".join(problems)
@@ -63,25 +64,32 @@ def handle(event: Any, deps: Deps) -> dict:
     """Classify one document. Always returns a dictionary, never raises."""
     request_id = event.get("request_id") if isinstance(event, dict) else None
     try:
+        # Check the request. A bad one becomes INVALID_REQUEST.
         try:
             request = ClassifyRequest.model_validate(event)
         except ValidationError as exc:
             raise InvalidRequest(describe(exc)) from exc
 
+        # Checks URL quality, e.g., expired url
         check_url(request.document_url, deps.allowed_hosts, deps.clock())
+        # Get the document's bytes from the store
         content = deps.store.fetch(request.document_url)
 
+        # Turn the bytes into text. Unsupported file type: no text, add a warning.
         warnings: list[str] = []
         try:
             text = extract_text(content, request.metadata.mime_type)
         except UnsupportedDocument:
             text = ""
             warnings.append("content_not_read")
+        # The file was read but had no text, for example a scanned PDF.
         if not text.strip() and not warnings:
             warnings.append("no_text_found")
 
+        # Pick a category from the text and the file name.
         result = deps.classifier.classify(text, request.metadata.file_name)
     except AppError as error:
+        # Our own errors (bad request, not found, too large...): return their code.
         logger.warning("request_failed request_id=%s code=%s", request_id, error.code)
         return error_response(request_id, error)
     except Exception:
@@ -89,6 +97,7 @@ def handle(event: Any, deps: Deps) -> dict:
         logger.exception("unexpected_error request_id=%s", request_id)
         return error_response(request_id, AppError("Something went wrong on our side."))
 
+    # Everything worked: build the success response.
     return {
         "request_id": request.request_id,
         "status": "ok",
