@@ -5,6 +5,8 @@ import io
 from fpdf import FPDF
 from pypdf import PdfReader, PdfWriter
 
+from docclassify.errors import DocumentNotFound
+
 
 def make_pdf(text: str) -> bytes:
     """Build a one-page PDF in memory that contains the given text."""
@@ -22,3 +24,15 @@ def make_locked_pdf(text: str, user_password: str) -> bytes:
     buffer = io.BytesIO()
     writer.write(buffer)
     return buffer.getvalue()
+
+
+class FakeStore:
+    """A store that keeps documents in a dictionary, keyed by URL."""
+
+    def __init__(self, documents: dict[str, bytes]) -> None:
+        self._documents = documents
+
+    def fetch(self, url: str) -> bytes:
+        if url not in self._documents:
+            raise DocumentNotFound("The store has no document at this URL.")
+        return self._documents[url]
